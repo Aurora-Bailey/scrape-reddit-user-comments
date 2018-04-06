@@ -1,5 +1,5 @@
 {
-  "name": "scrape-amazon-best-sellers",
+  "name": "scrape-reddit-user-comments",
   "version": "1.0.0",
   "description": "",
   "main": "cluster.js",

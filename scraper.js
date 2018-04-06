@@ -21,59 +21,28 @@ class Scraper {
     })
   }
 
-  html (current_uri, body) {
+  html (uri, body) {
     var $ = cheerio.load(body)
-    var strip_current_uri = current_uri.split('?')[0]
-
-    // title
-    let page_title = $('#zg_listTitle').text()
-
-    // Find new links
     var foundLinks = []
-    $('#zg_browseRoot').find('a').each(function (i, e) {
-      let uri = $(this).attr('href').split('/ref=')[0]
-      let text = $(this).text()
-      foundLinks.push({uri, text})
-    })
-    // Pagination to links
-    let pages = $('#zg_paginationWrapper').find('a').length
-    for (var i = 2; i <= pages; i++) {
-      foundLinks.push({uri: strip_current_uri + '?pg=' + i, text: 'pagination'})
-    }
 
-    // Find procucts/data
-    let product_list = []
-    let unable_to_parse = 0
-    $('.zg_itemImmersion').each(function (i, e) {
-      let item = {}
-      try {
-        item.rank = parseInt($(this).find('.zg_rankNumber').text().replace(/\W/g, ''))
-        item.price = parseFloat($(this).find('.p13n-sc-price').text().replace('$', ''))
-        item.thumbnail = $(this).find('img').attr('src')
-        item.title = $(this).find('img').attr('alt')
-        item.rating = parseFloat($(this).find('.a-icon-star').text().split(' ')[0])
-        item.numreviews = parseInt($(this).find('.a-size-small').text().replace(/\W/g, ''))
-        item.link = 'https://www.amazon.com' + $(this).find('.a-text-normal').attr('href').split('/ref=')[0]
-        // lm.addLinkProduct(opt.uri, item)
-        product_list.push(item)
-      }
-      catch(err) {
-        unable_to_parse++
-        item.error = true
-        // lm.addLinkProduct(opt.uri, item)
-        product_list.push(item)
-      }
-    })
-    if (unable_to_parse) console.log('Unable to parse ' + unable_to_parse + ' items')
-
-    dm.insertData(strip_current_uri, page_title, product_list).catch(err => {console.error(err)})
     return foundLinks
   }
 
-  json (url, body) {
+  json (uri, body) {
     var json = JSON.parse(body)
     var foundLinks = []
 
+    if (json.kind && json.kind =="Listing") {
+
+      json.data.children.forEach(c => {
+        let {link_title, author, subreddit, body} = c.data
+        dm.insertComment({link_title, author, subreddit, body})
+      })
+
+    } else {
+      console.log('error on ', uri)
+      dm.logError({uri, json})
+    }
     return foundLinks
   }
 }
